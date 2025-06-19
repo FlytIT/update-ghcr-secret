@@ -2,7 +2,7 @@
 set -euo pipefail
 
 now=$(date +%s)
-exp=$((now + REFRESH_INTERVAL))
+exp=$((now + $REFRESH_INTERVAL))
 
 header='{"alg":"RS256","typ":"JWT"}'
 payload=$(jq -n --arg i "$GITHUB_APP_ID" --argjson now "$now" --argjson exp "$exp" \
