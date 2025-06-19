@@ -1,7 +1,10 @@
 FROM bitnami/kubectl:latest
 
 # Install needed packages: bash (for shell), curl (for API calls), jq (JSON parsing), openssl (for JWT signing)
-RUN install_packages bash curl jq openssl
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      bash curl jq openssl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy the update script into the image
 COPY update-ghcr-secret.sh /usr/local/bin/update-ghcr-secret.sh
