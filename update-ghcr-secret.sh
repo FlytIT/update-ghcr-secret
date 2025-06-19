@@ -1,41 +1,45 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-now=$(date +%s)
-exp=$((now + $REFRESH_INTERVAL))
+# Expect RSA private key at a mounted path
+RSA_KEY_PATH="${RSA_KEY_PATH:-/mnt/key/private-key.pem}"
+if [[ ! -r "$RSA_KEY_PATH" ]]; then
+  echo "ERROR: RSA key file not found at $RSA_KEY_PATH" >&2
+  exit 1
+fi
 
+# JWT header
 header='{"alg":"RS256","typ":"JWT"}'
-payload=$(jq -n --arg i "$GITHUB_APP_ID" --argjson now "$now" --argjson exp "$exp" \
-  '{iss: ($i | tonumber), iat: $now, exp: $exp}')
+# JWT payload
+iat=$(date +%s)
+exp=$(( iat + (REFRESH_INTERVAL:–600) ))
+payload=$(cat <<EOF
+{"iat":$iat,"exp":$exp,"iss":${GITHUB_APP_ID}}
+EOF
+)
 
-b64enc() { openssl base64 -e -A | tr '+/' '-_' | tr -d '='; }
-sign() {
-  openssl dgst -sha256 -sign <(echo "$GITHUB_PRIVATE_KEY") | b64enc
-}
+# Base64url encoding
+b64() { openssl base64 -e -A | tr '+/' '-_' | tr -d '='; }
 
-header_b64=$(echo -n "$header" | b64enc)
-payload_b64=$(echo -n "$payload" | b64enc)
-signature=$(echo -n "$header_b64.$payload_b64" | sign)
-jwt="$header_b64.$payload_b64.$signature"
+jwt="${header}" | b64
+jwt+="."$(echo "$payload" | b64)
+sig=$(echo -n "${jwt}" | openssl dgst -sha256 -sign "$RSA_KEY_PATH" | b64)
+jwt="${jwt}.${sig}"
 
-access_token=$(curl -s -X POST \
+# Exchange for installation token
+token=$(curl -sSL \
   -H "Authorization: Bearer $jwt" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens" \
+  "https://api.github.com/app/installations/${GITHUB_INSTALLATION_ID}/access_tokens" \
   | jq -r .token)
 
-AUTH=$(echo -n "USERNAME:$access_token" | base64)
-docker_config=$(jq -n \
-  --arg auth "$AUTH" \
-  '{
-    "auths": {
-      "ghcr.io": {
-        "auth": $auth
-      }
-    }
-  }')
+# Build Docker credentials JSON
+auth=$(echo -n "unused:${token}" | base64 -w 0)
+echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"${auth}\"}}}" > /tmp/dockerconfigjson
 
-kubectl create secret generic ghcr-secret \
-  --type=kubernetes.io/dockerconfigjson \
-  --from-literal=.dockerconfigjson="$(echo $docker_config)" \
-  --dry-run=client -o yaml | kubectl apply -f -
+# Apply Kubernetes secret
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-config-json=/tmp/dockerconfigjson \
+  --dry-run=client -o yaml \
+  | kubectl apply -f -
