@@ -1,6 +1,7 @@
 initContainer:
   enabled: true
-  image: ghcr.io/flytit/utility/update-ghcr-secret:latest
+  image: ghcr.io/flytit/utility/images/update-ghcr-secret
+  tag:
   pullPolicy: IfNotPresent
   secretName: github-app-secret
   keyMountPath: /mnt/key

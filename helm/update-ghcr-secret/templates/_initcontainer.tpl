@@ -1,7 +1,7 @@
 {{- define "ghcr-secret-injector.initContainer" }}
 {{- if .Values.initContainer.enabled }}
 - name: ghcr-secret-init
-  image: "{{ .Values.initContainer.image }}"
+  image: "{{ .Values.initContainer.image }}:{{ default .Chart.Version .Values.initContainer.tag }}"
   imagePullPolicy: {{ .Values.initContainer.pullPolicy }}
   env:
     - name: GITHUB_APP_ID
