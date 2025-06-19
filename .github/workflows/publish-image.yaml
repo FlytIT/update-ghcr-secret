@@ -75,7 +75,3 @@ jobs:
 
           echo "Pushing versioned chart: $CHART_PACKAGE"
           helm push "$CHART_PACKAGE" oci://${REPOSITORY}/chart
-
-          echo "Tagging and pushing latest"
-          cp "$CHART_PACKAGE" "${CHART_NAME}-latest.tgz"
-          helm push "${CHART_NAME}-latest.tgz" oci://${REPOSITORY}/chart
