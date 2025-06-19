@@ -1,0 +1,7 @@
+apiVersion: v2
+name: update-ghcr-secret
+description: Library chart for acquiring image pull secret from a GitHub App
+
+type: library
+
+version: 0.0.1
