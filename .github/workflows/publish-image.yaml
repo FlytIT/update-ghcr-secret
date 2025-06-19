@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPOSITORY: ghcr.io/FlytIT/utility/update-ghcr-secret
+  REPOSITORY: ghcr.io/flytit/utility/update-ghcr-secret
   VERSION: 0.1.${{ github.run_number }}
 
 jobs:
