@@ -1,0 +1,10 @@
+initContainer:
+  enabled: true
+  image: ghcr.io/flytit/utility/update-ghcr-secret:latest
+  pullPolicy: IfNotPresent
+  secretName: github-app-secret
+  keyMountPath: /mnt/key
+  appIdKey: app_id
+  installationIdKey: installation_id
+  privateKeyFile: private-key.pem
+  secretOutputName: ghcr-secret
