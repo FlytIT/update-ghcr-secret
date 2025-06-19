@@ -49,9 +49,20 @@ spec:
         spec:
           restartPolicy: OnFailure
           serviceAccountName: ghcr-secret-writer
+          volumes:
+            - name: rsa-key
+              secret:
+                secretName: <github-app-secret>
+                items:
+                  - key: private-key.pem
+                    path: private-key.pem
           containers:
             - name: token-updater
               image: ghcr.io/FlytIT/utility/update-ghcr-secret:latest
+              volumeMounts:
+                - name: rsa-key
+                  mountPath: /mnt/key
+                  readOnly: true
               env:
                 - name: GITHUB_APP_ID
                   valueFrom:
