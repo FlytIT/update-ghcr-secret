@@ -1,31 +1,42 @@
 # Usage
 
-In your app Helm chart, Add `ghcr-secret-injector` as a dependency in `Chart.yaml`
+If you're not already running admission controllers, add this job to your cluster to have ghcr-sercret be automatically updated using a Github App.
 ```yaml
-dependencies:
-  - name: ghcr-secret-injector
-    version: 0.1.0
-    repository: "file://../ghcr-secret-injector"  # or a remote repo
-```
-Next, enable the init container in your `values.yaml`:
-```yaml
-ghcr-secret-injector:
-  initContainer:
-    enabled: true
-    image: ghcr.io/flytit/utility/update-ghcr-secret:latest
-```
-And lastly, edit your `deployment.yaml`:
-```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ghcr-secret-bootstrap
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
-  serviceAccountName: ghcr-secret-writer
-  initContainers:
-    {{- include "ghcr-secret-injector.initContainer" . | nindent 4 }}
-  containers:
-    - name: your-app
-      image: ghcr.io/your-org/your-app:tag
-      ...
-  volumes:
-    {{- include "ghcr-secret-injector.volume" . | nindent 4 }}
-  imagePullSecrets:
-    {{- include "ghcr-secret-injector.imagePullSecret" . | nindent 4 }}
+  template:
+    spec:
+      serviceAccountName: ghcr-secret-writer
+      restartPolicy: OnFailure
+      containers:
+        - name: secret-writer
+          image: ghcr.io/flytit/utility/update-ghcr-secret:latest
+          env:
+            - name: GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-secret
+                  key: app_id
+            - name: GITHUB_INSTALLATION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-secret
+                  key: installation_id
+          volumeMounts:
+            - name: key
+              mountPath: /mnt/key
+              readOnly: true
+      volumes:
+        - name: key
+          secret:
+            secretName: github-app-secret
+            items:
+              - key: private-key.pem
+                path: private-key.pem
 ```
