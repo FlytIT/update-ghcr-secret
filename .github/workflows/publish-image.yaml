@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPOSITORY: ghcr.io/flytit/utility/update-ghcr-secret
+  REPOSITORY: ghcr.io/flytit/utility
   VERSION: 0.1.${{ github.run_number }}
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
           platforms: linux/amd64
           push: false
           load: true
-          tags: ${{ env.REPOSITORY }}/image:${{ env.VERSION }}
+          tags: ${{ env.REPOSITORY }}/images/${{ github.event.repository.name }}:${{ env.VERSION }}
 
       - name: Log in to GHCR for Helm
         run: |
@@ -66,7 +66,7 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.REPOSITORY }}/image:${{ env.VERSION }}
+          tags: ${{ env.REPOSITORY }}/images/${{ github.event.repository.name }}:${{ env.VERSION }}
 
       - name: Push Helm chart to GHCR (versioned and latest)
         run: |
